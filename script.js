@@ -10,9 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const hljs = !!window.hljs;
         const showdown = !!window.showdown;
         const codemirror = !!window.CodeMirror;
-        
+
         console.log('Library status:', { hljs, showdown, codemirror });
-        
+
         if (hljs && showdown && codemirror) {
           resolve();
         } else {
@@ -22,11 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
       checkLibraries();
     });
   }
-  
+
   // 等待库加载完成后初始化
   waitForLibraries().then(() => {
     console.log('All libraries loaded, initializing...');
-    
+
     // 初始化 highlight.js
     if (window.hljs) {
       hljs.configure({
@@ -36,24 +36,24 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       console.error('highlight.js not loaded');
     }
-    
+
     // 初始化编辑器
     initializeEditor();
   });
-  
+
   function initializeEditor() {
     // 初始化 Showdown 转换器
-    const converter = new showdown.Converter({ 
-      tables: true, 
-      ghCodeBlocks: true, 
-      strikethrough: true, 
+    const converter = new showdown.Converter({
+      tables: true,
+      ghCodeBlocks: true,
+      strikethrough: true,
       tasklists: true,
       emoji: true,
       underline: true,
       ghCompatibleHeaderId: true,
       parseImgDimensions: true
     });
-    
+
     // 默认示例内容常量（用于恢复默认内容与首次加载）
     const DEFAULT_MD_CONTENT = `## Paper 编辑器简介
 
@@ -134,7 +134,7 @@ else:
 | [Markdown语法速查](https://xiaolinbaba.notion.site/Markdown-bcf20a9190db4b208dc137f755788405) | Markdown 语法速查 | 🌟🌟🌟🌟 |
 
 <![PIC01.png](https://picx.zhimg.com/v2-45dd5f524da0d125233d6af4fb2d4135_r.jpg),![PIC02.png](https://pic1.zhimg.com/v2-d591ac49a57ca87cb3c7b29d6e1a7622_r.jpg),![PIC03.png](https://picx.zhimg.com/v2-b712755e8f4e02226582bbfb6246dcd3_r.jpg)>`;
-    
+
     // DOM 元素引用
     const mdInput = document.getElementById('markdown');
     const preview = document.getElementById('preview');
@@ -165,22 +165,25 @@ else:
       viewportMargin: Infinity,
       placeholder: '在此输入 Markdown 内容...\n\n支持实时预览，编辑完成后可一键复制到微信公众号。',
       extraKeys: {
-        'Ctrl-S': function(cm) {
+        'Ctrl-S': function (cm) {
           // 手动保存快捷键
-          localStorage.setItem('md_editor_draft', cm.getValue());
-          localStorage.setItem('md_editor_save_time', new Date().toLocaleString());
-          saveStatus.textContent = '手动保存成功';
-          setTimeout(() => {
-            saveStatus.textContent = '已保存';
-          }, 2000);
+          if (saveToLocalStorage('md_editor_draft', cm.getValue())) {
+            saveToLocalStorage('md_editor_save_time', new Date().toLocaleString());
+            saveStatus.textContent = '手动保存成功';
+            setTimeout(() => {
+              saveStatus.textContent = '已保存';
+            }, 2000);
+          } else {
+            saveStatus.textContent = '保存失败';
+          }
         },
-        'Ctrl-Enter': function(cm) {
+        'Ctrl-Enter': function (cm) {
           // 复制快捷键
           copyBtn.click();
         },
-        'Ctrl-B': function(){ toolbarToggleBold(); },
-        'Ctrl-I': function(){ toolbarToggleItalic(); },
-        'Enter': function(cm){
+        'Ctrl-B': function () { toolbarToggleBold(); },
+        'Ctrl-I': function () { toolbarToggleItalic(); },
+        'Enter': function (cm) {
           // 自动延续列表/任务列表
           const pos = cm.getCursor();
           const line = cm.getLine(pos.line);
@@ -191,8 +194,8 @@ else:
             const markerLen = (matchTask && matchTask[0].length) || (matchUl && matchUl[0].length) || (matchOl && matchOl[0].length) || 0;
             const content = line.slice(markerLen);
             if (content.trim().length === 0) {
-              cm.replaceRange('\n', {line: pos.line, ch: line.length}, {line: pos.line, ch: line.length});
-              cm.replaceRange('', {line: pos.line, ch: 0}, {line: pos.line, ch: markerLen});
+              cm.replaceRange('\n', { line: pos.line, ch: line.length }, { line: pos.line, ch: line.length });
+              cm.replaceRange('', { line: pos.line, ch: 0 }, { line: pos.line, ch: markerLen });
               return;
             }
             let prefix = '';
@@ -239,96 +242,8 @@ else:
     } else if (window.confetti) {
       myConfetti = window.confetti;
     }
-    
-    // 农历转换功能
-    function solarToLunar(solarYear, solarMonth, solarDay) {
-      // 农历月份名称
-      const lunarMonths = ['正月', '二月', '三月', '四月', '五月', '六月', 
-                          '七月', '八月', '九月', '十月', '冬月', '腊月'];
-      
-      // 农历日期名称
-      const lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
-                        '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
-                        '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
-      
-      // 天干地支
-      const heavenlyStems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-      const earthlyBranches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-      const zodiacAnimals = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
-      
-      // 农历数据（1900-2100年，每年12或13个月的天数）
-      // 这里只提供部分年份数据，实际使用中需要完整的农历数据表
-      const lunarInfo = {
-        2025: [29, 30, 29, 30, 29, 30, 29, 30, 30, 29, 30, 30], // 2025年农历月份天数
-        2024: [30, 29, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30]  // 2024年农历月份天数
-      };
-      
-      // 2025年春节是2025年1月29日
-      const springFestival2025 = new Date(2025, 0, 29);
-      const currentDate = new Date(solarYear, solarMonth - 1, solarDay);
-      
-      let lunarYear, lunarMonth, lunarDay;
-      
-      if (currentDate >= springFestival2025) {
-        // 2025年春节后
-        lunarYear = 2025;
-        const daysSinceSpring = Math.floor((currentDate - springFestival2025) / (1000 * 60 * 60 * 24));
-        
-        // 计算农历月日
-        let totalDays = daysSinceSpring + 1; // 春节当天是正月初一
-        lunarMonth = 1;
-        
-        const monthDays = lunarInfo[2025] || [30, 29, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30];
-        for (let i = 0; i < monthDays.length && totalDays > monthDays[i]; i++) {
-          totalDays -= monthDays[i];
-          lunarMonth++;
-        }
-        lunarDay = totalDays;
-      } else {
-        // 2024年腊月或更早
-        lunarYear = 2024;
-        const springFestival2024 = new Date(2024, 1, 10); // 2024年春节是2月10日
-        
-        if (currentDate >= springFestival2024) {
-          const daysSinceSpring = Math.floor((currentDate - springFestival2024) / (1000 * 60 * 60 * 24));
-          let totalDays = daysSinceSpring + 1;
-          lunarMonth = 1;
-          
-          const monthDays = lunarInfo[2024] || [30, 29, 30, 29, 30, 29, 30, 30, 29, 30, 29, 30];
-          for (let i = 0; i < monthDays.length && totalDays > monthDays[i]; i++) {
-            totalDays -= monthDays[i];
-            lunarMonth++;
-          }
-          lunarDay = totalDays;
-        } else {
-          // 更早的日期，简化处理
-          lunarYear = solarYear;
-          lunarMonth = solarMonth;
-          lunarDay = solarDay;
-        }
-      }
-      
-      // 确保数值在有效范围内
-      if (lunarMonth > 12) lunarMonth = 12;
-      if (lunarDay > 30) lunarDay = 30;
-      if (lunarMonth < 1) lunarMonth = 1;
-      if (lunarDay < 1) lunarDay = 1;
-      
-      // 计算年份的天干地支
-      const stemIndex = (lunarYear - 4) % 10;
-      const branchIndex = (lunarYear - 4) % 12;
-      const yearGanZhi = heavenlyStems[stemIndex] + earthlyBranches[branchIndex];
-      const zodiac = zodiacAnimals[branchIndex];
-      
-      return {
-        year: lunarYear,
-        month: lunarMonths[lunarMonth - 1],
-        day: lunarDays[lunarDay - 1],
-        yearGanZhi: yearGanZhi,
-        zodiac: zodiac
-      };
-    }
-    
+
+
     // 更新日期显示
     function updateDate() {
       const now = new Date();
@@ -337,53 +252,53 @@ else:
       const month = now.getMonth() + 1;
       const day = now.getDate();
       const weekday = weekdays[now.getDay()];
-      
+
       // 统一公历显示，避免简化农历误差
       const solarString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} ${weekday}`;
       if (editorDate) editorDate.textContent = solarString;
       // 预览标题已替换为缩放工具，不再显示日期
     }
-    
+
     // 初始化日期显示
     updateDate();
-    
+
     // 每分钟更新一次日期（以防跨日）
     setInterval(updateDate, 60000);
-    
+
     // 统计文本信息
     function updateStats() {
       const text = getEditorValue();
       const characters = text.length;
-      
+
       // 改进的字数统计逻辑
       let words = 0;
       if (text.trim()) {
         // 统计中文字符数（包括中文标点）
         const chineseChars = (text.match(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/g) || []).length;
-        
+
         // 统计英文单词数（移除中文字符后按空白分割）
         const englishText = text.replace(/[\u4e00-\u9fa5\u3000-\u303f\uff00-\uffef]/g, '');
         const englishWords = englishText.trim() ? englishText.trim().split(/\s+/).filter(word => word.length > 0).length : 0;
-        
+
         // 总字数 = 中文字符数 + 英文单词数
         words = chineseChars + englishWords;
       }
-      
+
       wordCount.textContent = `字数: ${words}`;
       charCount.textContent = `字符: ${characters}`;
     }
-    
+
     // 处理引用链接
     function processReferences(html) {
       const references = [];
       let refIndex = 1;
-      
+
       // 在链接后面添加引用标记，保留原链接
       html = html.replace(/<a href="([^"]+)"[^>]*>([^<]+)<\/a>/g, (match, url, text) => {
         references.push({ url, text });
         return `${match}<span class="reference-link">[${refIndex++}]</span>`;
       });
-      
+
       // 如果有引用，添加引用列表
       if (references.length > 0) {
         let referencesHtml = '<div class="references"><h4>引用链接</h4><ol>';
@@ -393,7 +308,7 @@ else:
         referencesHtml += '</ol></div>';
         html += referencesHtml;
       }
-      
+
       return html;
     }
 
@@ -402,7 +317,7 @@ else:
       // 先保护代码块内容
       const codeBlocks = [];
       let codeBlockIndex = 0;
-      
+
       // 匹配代码块（包括行内代码和多行代码块）
       markdownText = markdownText.replace(/```[\s\S]*?```|`[^`]+`/g, (match) => {
         const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
@@ -410,28 +325,28 @@ else:
         codeBlockIndex++;
         return placeholder;
       });
-      
+
       // 处理 :::info 标记的信息卡片
       markdownText = markdownText.replace(/:::info\s+(.*?)\n([\s\S]*?):::/g, (match, title, content) => {
         // 将内容转换为HTML格式的占位符，稍后会被替换
         return `<div class="info-card-placeholder" data-title="${title}" data-content="${encodeURIComponent(content.trim())}"></div>`;
       });
-      
+
       // 处理 :::orange 标记的浅橙色卡片（无标题）
       markdownText = markdownText.replace(/:::orange\n([\s\S]*?):::/g, (match, content) => {
         return `<div class="orange-card-placeholder" data-content="${encodeURIComponent(content.trim())}"></div>`;
       });
-      
+
       // 处理 :::blue 标记的浅蓝色卡片（无标题）
       markdownText = markdownText.replace(/:::blue\n([\s\S]*?):::/g, (match, content) => {
         return `<div class="blue-card-placeholder" data-content="${encodeURIComponent(content.trim())}"></div>`;
       });
-      
+
       // 恢复代码块内容
       codeBlocks.forEach((codeBlock, index) => {
         markdownText = markdownText.replace(`__CODE_BLOCK_${index}__`, codeBlock);
       });
-      
+
       return markdownText;
     }
 
@@ -441,18 +356,18 @@ else:
       html = html.replace(/<div class="info-card-placeholder" data-title="([^"]*)" data-content="([^"]*)"><\/div>/g, (match, title, encodedContent) => {
         const content = decodeURIComponent(encodedContent);
         let processedContent = converter.makeHtml(content);
-        
+
         // 清理内部的段落标签，使用简单的换行
         processedContent = processedContent.replace(/<p>/g, '').replace(/<\/p>/g, '<br><br>');
         processedContent = processedContent.replace(/<br><br>$/, ''); // 移除末尾的换行
-        
+
         // 为信息卡片内的图片添加样式限制（缩小上下间距）
         processedContent = processedContent.replace(/<img([^>]*)>/g, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 6px 0;">');
         // 去除图片前后由 <p> 替换产生的多余 <br>
         processedContent = processedContent
           .replace(/(?:<br\s*\/?>\s*)+(<img[^>]*>)/g, '$1')
           .replace(/(<img[^>]*>)(?:\s*<br\s*\/?>)+/g, '$1');
-        
+
         // 使用表格来创建带背景色的卡片效果（微信公众号完全支持）
         return `<table style="width: 100%; margin: 12px 0; border-collapse: separate; border-spacing: 0;">
           <tr>
@@ -467,55 +382,55 @@ else:
           </tr>
         </table>`;
       });
-      
+
       // 处理 orange 卡片（无标题）
       html = html.replace(/<div class="orange-card-placeholder" data-content="([^"]*)"><\/div>/g, (match, encodedContent) => {
         const content = decodeURIComponent(encodedContent);
         let processedContent = converter.makeHtml(content);
-        
+
         // 清理内部的段落标签，使用简单的换行
         processedContent = processedContent.replace(/<p>/g, '').replace(/<\/p>/g, '<br><br>');
         processedContent = processedContent.replace(/<br><br>$/, ''); // 移除末尾的换行
-        
+
         // 使用表格来创建浅橙色卡片效果（微信公众号完全支持）
         return `<table style="width: 100%; margin: 12px 0; border-collapse: separate; border-spacing: 0;">
           <tr>
             <td style="background-color: #FFF3E0; border: none; padding: 12px 16px; border-radius: 8px;">
               <p style="margin: 0; color: #333; line-height: 1.8;">
                 ${processedContent
-                  .replace(/<img([^>]*)>/g, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 6px 0;">')
-                  .replace(/(?:<br\s*\/?>\s*)+(<img[^>]*>)/g, '$1')
-                  .replace(/(<img[^>]*>)(?:\s*<br\s*\/?>)+/g, '$1')}
+            .replace(/<img([^>]*)>/g, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 6px 0;">')
+            .replace(/(?:<br\s*\/?>\s*)+(<img[^>]*>)/g, '$1')
+            .replace(/(<img[^>]*>)(?:\s*<br\s*\/?>)+/g, '$1')}
               </p>
             </td>
           </tr>
         </table>`;
       });
-      
+
       // 处理 blue 卡片（无标题）
       html = html.replace(/<div class="blue-card-placeholder" data-content="([^"]*)"><\/div>/g, (match, encodedContent) => {
         const content = decodeURIComponent(encodedContent);
         let processedContent = converter.makeHtml(content);
-        
+
         // 清理内部的段落标签，使用简单的换行
         processedContent = processedContent.replace(/<p>/g, '').replace(/<\/p>/g, '<br><br>');
         processedContent = processedContent.replace(/<br><br>$/, ''); // 移除末尾的换行
-        
+
         // 使用表格来创建浅蓝色卡片效果（微信公众号完全支持）
         return `<table style="width: 100%; margin: 12px 0; border-collapse: separate; border-spacing: 0;">
           <tr>
             <td style="background-color: #E3F2FD; border: none; padding: 12px 16px; border-radius: 8px;">
               <p style="margin: 0; color: #333; line-height: 1.8;">
                 ${processedContent
-                  .replace(/<img([^>]*)>/g, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 6px 0;">')
-                  .replace(/(?:<br\s*\/?>\s*)+(<img[^>]*>)/g, '$1')
-                  .replace(/(<img[^>]*>)(?:\s*<br\s*\/?>)+/g, '$1')}
+            .replace(/<img([^>]*)>/g, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 6px 0;">')
+            .replace(/(?:<br\s*\/?>\s*)+(<img[^>]*>)/g, '$1')
+            .replace(/(<img[^>]*>)(?:\s*<br\s*\/?>)+/g, '$1')}
               </p>
             </td>
           </tr>
         </table>`;
       });
-      
+
       return html;
     }
 
@@ -524,7 +439,7 @@ else:
       // 先保护代码块内容
       const codeBlocks = [];
       let codeBlockIndex = 0;
-      
+
       // 匹配代码块（包括行内代码和多行代码块）
       markdownText = markdownText.replace(/```[\s\S]*?```|`[^`]+`/g, (match) => {
         const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
@@ -532,46 +447,46 @@ else:
         codeBlockIndex++;
         return placeholder;
       });
-      
+
       // 匹配 <![alt](url),![alt](url)> 语法，但不匹配行内代码中的内容
       // 要求前面是行首、空白字符或换行符，后面是空白字符、换行符或行尾
       const slideshowRegex = /(^|\s|>\s*)\n?<!\[([^\]]*)\]\(([^)]+)\)(?:,\s*!\[([^\]]*)\]\(([^)]+)\))+>(?=\s|$|\n)/gm;
-      
+
       markdownText = markdownText.replace(slideshowRegex, (match, prefix, ...groups) => {
         // 提取所有图片
         const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
         const images = [];
         let imageMatch;
-        
+
         while ((imageMatch = imageRegex.exec(match)) !== null) {
           images.push({
             alt: imageMatch[1] || '',
             url: imageMatch[2]
           });
         }
-        
+
         if (images.length === 0) return match;
-        
+
         // 生成唯一ID
         const slideshowId = 'slideshow-' + Math.random().toString(36).substr(2, 9);
-        
+
         // 创建滑动幻灯片HTML（基于微信公众号有效实现）
         let slideshowHTML = '<section style="box-sizing: border-box; font-size: 16px; margin: 20px 0;">';
         slideshowHTML += '<section style="font-family: 微软雅黑; font-size: 16px;">';
         slideshowHTML += '<section style="margin: 0px auto; box-sizing: border-box; width: 100%;">';
         slideshowHTML += '<section style="margin: 0px auto; text-align: center;">';
         slideshowHTML += '<section style="display: inline-block; width: 100%;">';
-        
+
         // 核心滚动容器
         slideshowHTML += '<section style="overflow-x: scroll; overflow-y: hidden; -webkit-overflow-scrolling: touch; white-space: nowrap; width: 100%; text-align: center;">';
-        
+
         images.forEach((img, index) => {
           slideshowHTML += '<section style="display: inline-block; width: 90%; margin-right: 10px; vertical-align: top;">';
           slideshowHTML += `<img style="display: block; width: 100%; height: auto; margin: 0.1em auto 0.2em; border: 1px solid rgba(0, 0, 0, 0.04); vertical-align: top;" title="${img.alt || 'picture'}" alt="${img.alt || 'picture'}" src="${img.url}">`;
           slideshowHTML += `<p style="margin: 0; font-size: 12px; color: #333; text-align: center; white-space: normal; line-height: 1.2;">${img.alt || 'picture'}</p>`;
           slideshowHTML += '</section>';
         });
-        
+
         slideshowHTML += '</section>';
         slideshowHTML += '</section>';
         slideshowHTML += '</section>';
@@ -579,55 +494,55 @@ else:
         slideshowHTML += '</section>';
         slideshowHTML += '<section style="text-align: center; margin: 4px 0 0 0; padding: 0;"><p style="font-size: 12px; color: #333; text-align: center; margin: 0; padding: 0; line-height: 1.5;">&lt;&lt;&lt; 左右滑动看更多 &gt;&gt;&gt;</p></section>';
         slideshowHTML += '</section>';
-        
+
         return prefix + slideshowHTML;
       });
-      
+
       // 恢复代码块内容
       codeBlocks.forEach((codeBlock, index) => {
         markdownText = markdownText.replace(`__CODE_BLOCK_${index}__`, codeBlock);
       });
-      
+
       return markdownText;
     }
 
     // 渲染 Markdown
-    function render() { 
+    function render() {
       isRendering = true; // 开始渲染
       console.log('Starting render...');
       let markdownText = getEditorValue();
       console.log('Original markdown length:', markdownText.length);
-      
+
       // 保存当前滚动位置
       const previewContent = document.querySelector('.preview-content');
       const currentScrollTop = previewContent.scrollTop;
-      
+
       // 处理横屏滑动幻灯片（在Markdown转换前）
       markdownText = processSlideshow(markdownText);
-      
+
       // 先处理信息卡片（在Markdown转换前）
       markdownText = processInfoCards(markdownText);
-      
+
       console.log('Converting markdown to HTML...');
       let html = converter.makeHtml(markdownText);
       console.log('HTML conversion complete, length:', html.length);
-      
+
       // 处理信息卡片占位符
       html = processInfoCardPlaceholders(html);
-      
+
       // 处理引用链接
       html = processReferences(html);
-      
+
       console.log('Setting preview innerHTML...');
       // 安全清洗
       if (window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
-        html = window.DOMPurify.sanitize(html, {USE_PROFILES: {html: true}});
+        html = window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
       }
       preview.innerHTML = html;
-      
+
       // 恢复滚动位置
       previewContent.scrollTop = currentScrollTop;
-      
+
       // 应用代码高亮 - 使用更短的延迟并优化处理
       setTimeout(() => {
         console.log('Applying syntax highlighting...');
@@ -639,17 +554,13 @@ else:
             if (block.hasAttribute('data-highlighted')) {
               return;
             }
-            
-            // 清除之前的高亮
-            block.removeAttribute('data-highlighted');
-            block.className = block.className.replace(/hljs[^\s]*/g, '').trim();
-            
+
             // 尝试检测语言
             const text = block.textContent;
             if (text.includes('def ') || text.includes('import ') || text.includes('print(')) {
               block.className = 'language-python';
             }
-            
+
             console.log(`Highlighting block ${index}:`, block.className);
             // 应用新的高亮
             try {
@@ -659,7 +570,7 @@ else:
               console.error(`Error highlighting block ${index}:`, e);
             }
           });
-          
+
           // 添加Mac样式的SVG圆点
           const preBlocks = preview.querySelectorAll('pre');
           preBlocks.forEach((pre, index) => {
@@ -674,7 +585,7 @@ else:
                 <ellipse fill="rgb(247,193,81)" stroke-width="2" stroke="rgb(218,151,33)" ry="52" rx="50" cy="65" cx="225"></ellipse>
                 <ellipse fill="rgb(100,200,86)" stroke-width="2" stroke="rgb(27,161,37)" ry="52" rx="50" cy="65" cx="400"></ellipse>
               </svg>`;
-              
+
               // 将SVG插入到pre元素的开头
               pre.insertBefore(macSign, pre.firstChild);
               console.log(`Added Mac style to code block ${index}`);
@@ -683,77 +594,115 @@ else:
         } else {
           console.error('hljs not available during render');
         }
-        
+
         // 再次恢复滚动位置（防止代码高亮后位置改变）
         previewContent.scrollTop = currentScrollTop;
-        
+
         // 渲染完成
         isRendering = false;
       }, 10);
-      
+
       updateStats();
       scheduleAutoSave();
     }
-    
-    // 事件监听器
-    let isTyping = false;
-    let typingTimer;
-    
-    // 智能渲染策略
-    codeMirrorEditor.on('change', () => {
-      // 如果正在快速输入，使用快速渲染
-      if (isTyping) {
-        quickRender();
-      } else {
-        // 第一次输入，标记为正在输入状态
-        isTyping = true;
-        quickRender();
+
+    // 配置常量
+    const CONFIG = {
+      RENDER_DEBOUNCE_MS: 500,
+      RENDER_DELAY_MS: 10,
+      AUTO_SAVE_DELAY_MS: 1000,
+      PREVIEW_WIDTH: 578,
+      ZOOM_MAX: 1.5,
+      ZOOM_MIN: 0.5,
+      ZOOM_STEP: 0.25
+    };
+
+    // localStorage 错误处理工具函数
+    function saveToLocalStorage(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        console.error('保存失败:', e);
+        if (e.name === 'QuotaExceededError') {
+          alert('存储空间已满,请清理浏览器缓存');
+        }
+        return false;
       }
-      
+    }
+
+    function loadFromLocalStorage(key, defaultValue = null) {
+      try {
+        const value = localStorage.getItem(key);
+        return value !== null ? value : defaultValue;
+      } catch (e) {
+        console.error('读取失败:', e);
+        return defaultValue;
+      }
+    }
+
+    function removeFromLocalStorage(key) {
+      try {
+        localStorage.removeItem(key);
+        return true;
+      } catch (e) {
+        console.error('删除失败:', e);
+        return false;
+      }
+    }
+
+
+    // 事件监听器
+    let typingTimer;
+
+    // 优化后的渲染策略
+    codeMirrorEditor.on('change', () => {
       // 清除之前的定时器
       clearTimeout(typingTimer);
-      
-      // 设置新的定时器，如果500ms内没有新的输入，则进行完整渲染
+
+      // 立即进行快速渲染(不包括代码高亮)
+      quickRender();
+
+      // 设置定时器,如果指定时间内没有新的输入,则进行完整渲染
       typingTimer = setTimeout(() => {
-        isTyping = false;
-        render(); // 完整渲染，包括代码高亮
-      }, 500);
+        render(); // 完整渲染,包括代码高亮
+      }, CONFIG.RENDER_DEBOUNCE_MS);
     });
-    
+
     // 快速渲染函数（仅更新文本内容，不处理代码高亮）
     function quickRender() {
       isRendering = true; // 开始渲染
       let markdownText = getEditorValue();
-      
+
       // 保存当前滚动位置
       const previewContent = document.querySelector('.preview-content');
       const currentScrollTop = previewContent.scrollTop;
-      
+
       // 处理横屏滑动幻灯片（在Markdown转换前）
       markdownText = processSlideshow(markdownText);
-      
+
       // 先处理信息卡片（在Markdown转换前）
       markdownText = processInfoCards(markdownText);
-      
+
       let html = converter.makeHtml(markdownText);
-      
+
       // 处理信息卡片占位符
       html = processInfoCardPlaceholders(html);
-      
+
       // 处理引用链接
       html = processReferences(html);
-      
+
       // 安全清洗
       if (window.DOMPurify && typeof window.DOMPurify.sanitize === 'function') {
-        html = window.DOMPurify.sanitize(html, {USE_PROFILES: {html: true}});
+        html = window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
       }
       preview.innerHTML = html;
-      
+
       // 恢复滚动位置
       previewContent.scrollTop = currentScrollTop;
-      
+
       updateStats();
-      
+
       // 快速渲染完成
       isRendering = false;
     }
@@ -761,7 +710,7 @@ else:
     // ==== 复刻 Madopic 行号逻辑：使用自定义左侧行号列与 textarea 同步 ====
     const lineNumbersEl = document.querySelector('.line-numbers');
     const textareaEl = document.getElementById('markdown');
-    function updateLineNumbers(){
+    function updateLineNumbers() {
       if (!lineNumbersEl) return;
       const value = codeMirrorEditor.getValue() || '';
       const lines = value.split('\n').length;
@@ -776,33 +725,36 @@ else:
         const scrollInfo = codeMirrorEditor.getScrollInfo();
         lineNumbersEl.style.height = scrollInfo.height + 'px';
         lineNumbersEl.scrollTop = scrollInfo.top;
-      } catch(e) {}
+      } catch (e) { }
     }
-    function syncLineNumbersScroll(){
+    function syncLineNumbersScroll() {
       if (!lineNumbersEl) return;
       try {
         const info = codeMirrorEditor.getScrollInfo();
         lineNumbersEl.scrollTop = info.top;
-      } catch(e) {}
+      } catch (e) { }
     }
     // 绑定编辑器变化与滚动
     codeMirrorEditor.on('change', updateLineNumbers);
     codeMirrorEditor.on('scroll', syncLineNumbersScroll);
     // 初始行号
     setTimeout(updateLineNumbers, 0);
-    
+
     // 自动保存功能
     function scheduleAutoSave() {
       saveStatus.textContent = '保存中...';
-      
+
       clearTimeout(autoSaveTimer);
       autoSaveTimer = setTimeout(() => {
-        localStorage.setItem('md_editor_draft', getEditorValue());
-        localStorage.setItem('md_editor_save_time', new Date().toLocaleString());
-        saveStatus.textContent = '已保存';
-      }, 1000);
+        if (saveToLocalStorage('md_editor_draft', getEditorValue())) {
+          saveToLocalStorage('md_editor_save_time', new Date().toLocaleString());
+          saveStatus.textContent = '已保存';
+        } else {
+          saveStatus.textContent = '保存失败';
+        }
+      }, CONFIG.AUTO_SAVE_DELAY_MS);
     }
-    
+
     // 递归为元素及其子元素注入行内样式
     function inlineStyles(el) {
       // 如果是信息卡片的表格，保持原有样式不变
@@ -815,7 +767,7 @@ else:
         Array.from(el.children).forEach(child => inlineStyles(child));
         return;
       }
-      
+
       // 如果是信息卡片内的td，保持原有样式
       if (el.tagName === 'TD' && el.getAttribute('style') && (
         el.getAttribute('style').includes('background-color: #D0F9D0') ||
@@ -825,49 +777,49 @@ else:
         Array.from(el.children).forEach(child => inlineStyles(child));
         return;
       }
-      
+
       // 特殊处理滑动幻灯片section元素 - 保持原有行内样式
       if (el.tagName === 'SECTION' && el.getAttribute('style')) {
         // 对于已经有行内样式的section元素，保持不变，但处理子元素
         Array.from(el.children).forEach(child => inlineStyles(child));
         return;
       }
-      
+
       // 特殊处理包含提示文字的section容器
       if (el.tagName === 'SECTION' && el.querySelector('p') && el.textContent && el.textContent.includes('左右滑动看更多')) {
         // 保持提示文字容器的原有样式不变
         Array.from(el.children).forEach(child => inlineStyles(child));
         return;
       }
-      
+
       // 特殊处理滑动幻灯片中的段落元素
       if (el.tagName === 'P' && el.closest('section[style*="overflow-x: scroll"]')) {
         // 保持滑动幻灯片中段落的原有样式不变
         Array.from(el.children).forEach(child => inlineStyles(child));
         return;
       }
-      
+
       // 特殊处理滑动幻灯片的提示文字
       if (el.tagName === 'P' && el.textContent && el.textContent.includes('左右滑动看更多')) {
         // 保持提示文字的原有样式不变
         Array.from(el.children).forEach(child => inlineStyles(child));
         return;
       }
-      
+
       // 特殊处理Mac样式的SVG元素
       if (el.classList && el.classList.contains('mac-sign')) {
         // 保持Mac样式不变，但处理子元素
         Array.from(el.children).forEach(child => inlineStyles(child));
         return;
       }
-      
+
       // 特殊处理SVG元素
       if (el.tagName === 'SVG' || el.tagName === 'ELLIPSE') {
         // SVG元素保持原有属性不变
         Array.from(el.children).forEach(child => inlineStyles(child));
         return;
       }
-      
+
       // 特殊处理图片元素
       if (el.tagName === 'IMG') {
         // 检查是否在滑动幻灯片中
@@ -876,7 +828,7 @@ else:
         const isInList = el.closest('ul') || el.closest('ol') || el.closest('li');
         // 检查是否在信息卡片（表格单元格背景色）中
         const infoCardTd = el.closest('td[style*="background-color: #D0F9D0"], td[style*="background-color: #FFF3E0"], td[style*="background-color: #E3F2FD"]');
-        
+
         if (isInSlideshow) {
           el.setAttribute('style', 'display: block; width: 100%; height: auto; margin: 0.1em auto 0.2em; border: 1px solid rgba(0, 0, 0, 0.04);');
         } else if (infoCardTd) {
@@ -891,7 +843,7 @@ else:
         return;
       }
       // 对常见内联元素不注入任何样式，避免公众号断行/换行问题
-      const INLINE_NO_STYLE = new Set(['STRONG','B','EM','I','CODE','SMALL','SUP','SUB','SPAN']);
+      const INLINE_NO_STYLE = new Set(['STRONG', 'B', 'EM', 'I', 'CODE', 'SMALL', 'SUP', 'SUB', 'SPAN']);
       if (INLINE_NO_STYLE.has(el.tagName)) {
         Array.from(el.children).forEach(child => inlineStyles(child));
         return;
@@ -900,55 +852,55 @@ else:
       const cs = window.getComputedStyle(el);
       let styleStr = '';
       // 为内联元素及列表项目避免设置会影响换行的属性（如 width/display/position/white-space）
-      const INLINE_TAGS = new Set(['STRONG','B','EM','I','SPAN','A','CODE','SMALL','SUP','SUB']);
+      const INLINE_TAGS = new Set(['STRONG', 'B', 'EM', 'I', 'SPAN', 'A', 'CODE', 'SMALL', 'SUP', 'SUB']);
       // 默认不拷贝 background，避免在公众号出现浅色底；仅对特定标签保留
-      let props = ['font-family','font-size','color','text-align','border','border-left','border-bottom','line-height','margin','padding','border-radius','box-shadow','text-shadow','width','display','position','white-space','word-wrap','word-break','overflow-x'];
+      let props = ['font-family', 'font-size', 'color', 'text-align', 'border', 'border-left', 'border-bottom', 'line-height', 'margin', 'padding', 'border-radius', 'box-shadow', 'text-shadow', 'width', 'display', 'position', 'white-space', 'word-wrap', 'word-break', 'overflow-x'];
       // 仅对信息卡片的 TD、引用样式和代码样式保留背景（h2 不再保留）
       if ((el.tagName === 'TD' && el.getAttribute('style') && (
-            el.getAttribute('style').includes('background-color: #D0F9D0') ||
-            el.getAttribute('style').includes('background-color: #FFF3E0') ||
-            el.getAttribute('style').includes('background-color: #E3F2FD')
-          )) ||
-          el.tagName === 'BLOCKQUOTE' ||
-          el.tagName === 'PRE' ||
-          el.tagName === 'CODE') {
+        el.getAttribute('style').includes('background-color: #D0F9D0') ||
+        el.getAttribute('style').includes('background-color: #FFF3E0') ||
+        el.getAttribute('style').includes('background-color: #E3F2FD')
+      )) ||
+        el.tagName === 'BLOCKQUOTE' ||
+        el.tagName === 'PRE' ||
+        el.tagName === 'CODE') {
         props.push('background');
       }
       if (INLINE_TAGS.has(el.tagName) || el.tagName === 'LI' || el.tagName === 'P') {
-        props = props.filter(p => !['width','display','position','white-space'].includes(p));
+        props = props.filter(p => !['width', 'display', 'position', 'white-space'].includes(p));
       }
-             props.forEach(prop => {
-         const val = cs.getPropertyValue(prop);
-         if (val && val !== 'rgba(0, 0, 0, 0)' && val !== 'transparent' && val !== 'none') {
-           // 过滤掉编辑器界面的浅灰背景色 #f8fafc (248,250,252)
-           if (prop === 'background' || prop === 'background-color') {
-             if (val.includes('248, 250, 252') || val.includes('#f8fafc') || 
-                 val.includes('rgb(248, 250, 252)') || val.includes('rgba(248, 250, 252')) {
-               return; // 跳过这个背景色
-             }
-           }
-           styleStr += `${prop}:${val};`;
-         }
-       });
-      
+      props.forEach(prop => {
+        const val = cs.getPropertyValue(prop);
+        if (val && val !== 'rgba(0, 0, 0, 0)' && val !== 'transparent' && val !== 'none') {
+          // 过滤掉编辑器界面的浅灰背景色 #f8fafc (248,250,252)
+          if (prop === 'background' || prop === 'background-color') {
+            if (val.includes('248, 250, 252') || val.includes('#f8fafc') ||
+              val.includes('rgb(248, 250, 252)') || val.includes('rgba(248, 250, 252')) {
+              return; // 跳过这个背景色
+            }
+          }
+          styleStr += `${prop}:${val};`;
+        }
+      });
+
       // 特殊处理代码块的Mac样式
       if (el.tagName === 'PRE') {
         styleStr += 'position:relative;';
       }
-      
+
       el.setAttribute('style', styleStr);
       Array.from(el.children).forEach(child => inlineStyles(child));
     }
-    
+
     // 初始渲染
     render();
-    
+
     // 页面加载时自动加载草稿
-    const savedDraft = localStorage.getItem('md_editor_draft');
+    const savedDraft = loadFromLocalStorage('md_editor_draft');
     if (savedDraft && savedDraft.trim()) {
       setEditorValue(savedDraft);
       render();
-      const saveTime = localStorage.getItem('md_editor_save_time');
+      const saveTime = loadFromLocalStorage('md_editor_save_time');
       if (saveTime) {
         saveStatus.textContent = `已加载草稿`;
       }
@@ -980,7 +932,7 @@ else:
 - ✅ 横屏滑动幻灯片（\`<![alt](url),![alt](url)>\` 语法）
 - ✅ 同步滚动（编辑器与预览区联动）
 - ❌ 数学公式（不支持，请使用工具栏链接手工渲染）
-- ❌ Mermaid 图表（不支持，使用工具栏链接手工渲染）
+- ❌ Mermaid 图表（不支持，请使用工具栏链接手工渲染）
 
 
 ## 快速开始
@@ -1035,11 +987,11 @@ else:
       setEditorValue(defaultContent);
       render();
     }
-    
+
     // 复制按钮
     copyBtn.addEventListener('click', () => {
       const clone = preview.cloneNode(true);
-      
+
       // 处理代码块中的空格和缩进，同时保持语法高亮
       const codeElements = clone.querySelectorAll('pre code');
       codeElements.forEach(code => {
@@ -1061,18 +1013,18 @@ else:
             });
           }
         }
-        
+
         processTextNodes(code);
       });
-      
+
       inlineStyles(clone);
-      
+
       // 彻底清理所有不需要的背景色
       function cleanBackgrounds(element) {
         const allElements = [element, ...element.querySelectorAll('*')];
         allElements.forEach(el => {
           if (!el.tagName) return;
-          
+
           // 保留信息卡片表格、引用样式和代码样式的背景（h2 不再保留）
           const isInfoCardTd = el.tagName === 'TD' && el.getAttribute('style') && (
             el.getAttribute('style').includes('background-color: #D0F9D0') ||
@@ -1082,7 +1034,7 @@ else:
           const isBlockquote = el.tagName === 'BLOCKQUOTE';
           const isPre = el.tagName === 'PRE';
           const isCode = el.tagName === 'CODE';
-          
+
           if (!isInfoCardTd && !isBlockquote && !isPre && !isCode) {
             // 强制设置背景为透明
             if (el.style) {
@@ -1096,7 +1048,7 @@ else:
               el.style.removeProperty('background-repeat');
               el.style.removeProperty('background-size');
             }
-            
+
             // 彻底清理style属性中的所有背景设置
             const styleAttr = el.getAttribute('style');
             if (styleAttr) {
@@ -1108,14 +1060,14 @@ else:
                 // 清理连续的分号
                 .replace(/;\s*;/g, ';')
                 .replace(/^;|;$/g, '');
-              
+
               // 重新添加透明背景
               if (cleanedStyle) {
                 cleanedStyle += '; background-color: transparent !important;';
               } else {
                 cleanedStyle = 'background-color: transparent !important;';
               }
-              
+
               el.setAttribute('style', cleanedStyle);
             } else {
               // 如果没有style属性，直接添加透明背景
@@ -1123,7 +1075,7 @@ else:
             }
           }
         });
-        
+
         // 特别处理信息卡片内的段落，确保边距与引用样式一致
         const cardParagraphs = clone.querySelectorAll('td[style*="background-color: #D0F9D0"] p, td[style*="background-color: #FFF3E0"] p, td[style*="background-color: #E3F2FD"] p');
         cardParagraphs.forEach(p => {
@@ -1143,38 +1095,38 @@ else:
           }
         });
       }
-      
+
       cleanBackgrounds(clone);
-      clone.style.position = 'fixed'; 
-      clone.style.top = '0'; 
+      clone.style.position = 'fixed';
+      clone.style.top = '0';
       clone.style.left = '-9999px';
       document.body.appendChild(clone);
-      
-      const range = document.createRange(); 
+
+      const range = document.createRange();
       range.selectNodeContents(clone);
-      const sel = window.getSelection(); 
-      sel.removeAllRanges(); 
+      const sel = window.getSelection();
+      sel.removeAllRanges();
       sel.addRange(range);
-      
+
       let success = false;
-      try { 
-        success = document.execCommand('copy'); 
-      } catch(e) { 
-        success = false; 
+      try {
+        success = document.execCommand('copy');
+      } catch (e) {
+        success = false;
       }
-      
-      sel.removeAllRanges(); 
+
+      sel.removeAllRanges();
       document.body.removeChild(clone);
-      
+
       if (success) {
         copyBtn.textContent = '已复制！';
         setTimeout(() => {
           copyBtn.textContent = '复制到公众号';
         }, 2000);
         if (myConfetti) {
-          myConfetti({ 
-            particleCount: 150, 
-            spread: 60, 
+          myConfetti({
+            particleCount: 150,
+            spread: 60,
             origin: { y: 0.4 }
           });
         }
@@ -1182,20 +1134,20 @@ else:
         alert('复制失败，请手动复制。');
       }
     });
-    
+
     // 同步滚动功能
     let isEditorScrolling = false;
     let isPreviewScrolling = false;
     const previewContent = document.querySelector('.preview-content');
-    
+
     function syncScroll(source, target) {
       // 如果正在渲染，跳过同步滚动
       if (isRendering) return;
       if (source === 'editor' && isPreviewScrolling) return;
       if (source === 'preview' && isEditorScrolling) return;
-      
+
       let sourceScrollTop, sourceScrollHeight;
-      
+
       if (source === 'editor') {
         const scrollInfo = codeMirrorEditor.getScrollInfo();
         sourceScrollTop = scrollInfo.top;
@@ -1204,16 +1156,16 @@ else:
         sourceScrollTop = previewContent.scrollTop;
         sourceScrollHeight = previewContent.scrollHeight - previewContent.clientHeight;
       }
-      
+
       const targetScrollHeight = target.scrollHeight - target.clientHeight;
-      
+
       if (sourceScrollHeight > 0 && targetScrollHeight > 0) {
         const scrollRatio = sourceScrollTop / sourceScrollHeight;
         const targetScrollTop = scrollRatio * targetScrollHeight;
         target.scrollTop = targetScrollTop;
       }
     }
-    
+
     // 编辑器滚动时同步预览区
     codeMirrorEditor.on('scroll', () => {
       if (isRendering) return; // 渲染时跳过滚动同步
@@ -1223,7 +1175,7 @@ else:
         isEditorScrolling = false;
       }, 100);
     });
-    
+
     // 预览区滚动时同步编辑器
     previewContent.addEventListener('scroll', () => {
       if (isRendering) return; // 渲染时跳过滚动同步
@@ -1232,13 +1184,13 @@ else:
       const scrollHeight = previewContent.scrollHeight - previewContent.clientHeight;
       const editorScrollInfo = codeMirrorEditor.getScrollInfo();
       const editorScrollHeight = editorScrollInfo.height - editorScrollInfo.clientHeight;
-      
+
       if (scrollHeight > 0 && editorScrollHeight > 0) {
         const scrollRatio = scrollInfo / scrollHeight;
         const editorScrollTop = scrollRatio * editorScrollHeight;
         codeMirrorEditor.scrollTo(null, editorScrollTop);
       }
-      
+
       setTimeout(() => {
         isPreviewScrolling = false;
       }, 100);
@@ -1246,14 +1198,14 @@ else:
 
     // 预览缩放（参考 Madopic）
     let zoom = 1;
-    function applyZoom(){
+    function applyZoom() {
       const inner = document.querySelector('.preview-inner');
       if (!inner) return;
       inner.style.transform = `scale(${zoom})`;
-      if (zoomLevelEl) zoomLevelEl.textContent = `${Math.round(zoom*100)}%`;
+      if (zoomLevelEl) zoomLevelEl.textContent = `${Math.round(zoom * 100)}%`;
     }
-    if (zoomInBtn) zoomInBtn.addEventListener('click', ()=>{ zoom = Math.min(1.5, zoom + 0.25); applyZoom(); });
-    if (zoomOutBtn) zoomOutBtn.addEventListener('click', ()=>{ zoom = Math.max(0.5, zoom - 0.25); applyZoom(); });
+    if (zoomInBtn) zoomInBtn.addEventListener('click', () => { zoom = Math.min(1.5, zoom + 0.25); applyZoom(); });
+    if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => { zoom = Math.max(0.5, zoom - 0.25); applyZoom(); });
     applyZoom();
 
     // 导出 HTML
@@ -1268,36 +1220,36 @@ else:
     });
 
     // 工具栏交互
-    function toolbarToggleBold(){
+    function toolbarToggleBold() {
       const cm = codeMirrorEditor; const sel = cm.getSelection();
       const wrapped = sel ? `**${sel}**` : '**粗体**';
       cm.replaceSelection(wrapped, 'around');
       cm.focus();
     }
-    function toolbarToggleItalic(){
+    function toolbarToggleItalic() {
       const cm = codeMirrorEditor; const sel = cm.getSelection();
       const wrapped = sel ? `*${sel}*` : '*斜体*';
       cm.replaceSelection(wrapped, 'around'); cm.focus();
     }
-    function toolbarHeading(level){
+    function toolbarHeading(level) {
       const cm = codeMirrorEditor; const pos = cm.getCursor();
       const line = cm.getLine(pos.line);
       const prefix = '#'.repeat(level) + ' ';
       const newLine = line.replace(/^\s*#{1,6}\s*/, '');
-      cm.replaceRange(prefix + newLine, {line: pos.line, ch: 0}, {line: pos.line, ch: line.length});
+      cm.replaceRange(prefix + newLine, { line: pos.line, ch: 0 }, { line: pos.line, ch: line.length });
       cm.focus();
     }
-    function toolbarLink(){
+    function toolbarLink() {
       const cm = codeMirrorEditor; const sel = cm.getSelection() || '链接文本';
       const url = prompt('输入链接地址：', 'https://');
       if (!url) return; cm.replaceSelection(`[${sel}](${url})`); cm.focus();
     }
-    function toolbarImage(){
+    function toolbarImage() {
       const alt = prompt('图片说明（可选）：', '');
       const url = prompt('图片地址：', 'https://');
       if (!url) return; codeMirrorEditor.replaceSelection(`![${alt || ''}](${url})`); codeMirrorEditor.focus();
     }
-    function toolbarList(type){
+    function toolbarList(type) {
       const cm = codeMirrorEditor; const pos = cm.getCursor();
       const line = cm.getLine(pos.line);
       let marker = '- ';
@@ -1307,13 +1259,13 @@ else:
         marker = '- [ ] ';
       }
       if (/^\s*([-*+]|\d+\.|- \[ \])\s+/.test(line)) {
-        cm.replaceRange(marker + line.replace(/^\s*([-*+]|\d+\.|- \[ \])\s+/, ''), {line: pos.line, ch: 0}, {line: pos.line, ch: line.length});
+        cm.replaceRange(marker + line.replace(/^\s*([-*+]|\d+\.|- \[ \])\s+/, ''), { line: pos.line, ch: 0 }, { line: pos.line, ch: line.length });
       } else {
-        cm.replaceRange(marker + line, {line: pos.line, ch: 0}, {line: pos.line, ch: line.length});
+        cm.replaceRange(marker + line, { line: pos.line, ch: 0 }, { line: pos.line, ch: line.length });
       }
       cm.focus();
     }
-    function toolbarTable(){
+    function toolbarTable() {
       const tpl = `| 列1 | 列2 | 列3 |\n| --- | --- | --- |\n| 内容1 | 内容2 | 内容3 |`;
       codeMirrorEditor.replaceSelection('\n' + tpl + '\n');
       codeMirrorEditor.focus();
@@ -1343,16 +1295,16 @@ else:
     safeBind('toolClear', () => { if (confirm('确认清空当前内容？')) { codeMirrorEditor.setValue(''); render(); } });
 
     // 字号与行高功能暂时取消（保留默认样式）
-    
+
     // 恢复默认内容按钮
-    function resetToDefault(){
+    function resetToDefault() {
       if (!confirm('确认恢复默认内容？草稿将被覆盖。')) return;
       setEditorValue(DEFAULT_MD_CONTENT);
-      localStorage.removeItem('md_editor_draft');
-      localStorage.removeItem('md_editor_save_time');
+      removeFromLocalStorage('md_editor_draft');
+      removeFromLocalStorage('md_editor_save_time');
       render();
       saveStatus.textContent = '已恢复默认内容';
-      setTimeout(()=>{ saveStatus.textContent = '已保存'; }, 2000);
+      setTimeout(() => { saveStatus.textContent = '已保存'; }, 2000);
     }
     if (tbResetBtn) tbResetBtn.addEventListener('click', resetToDefault);
   }

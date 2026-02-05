@@ -7,7 +7,7 @@
 
 > Paper 是一款轻量级纯前端，单 html 文件可执行的微信公众号 Markdown 编辑器。现代化三栏布局，实时 Markdown 预览，响应式设计，支持多张图片横向滑动查看，支持信息卡片；支持大部分 Markdown 语法 (数学公式和 Mermaid除外,请在发布区进行手工渲染)，支持信息卡片。预览区与微信公众号编辑器等宽，所见即所得。欢迎使用👏！支持cloudflare pagesb部署。**定制属于每个人自己的微信公众号样式！**
 
-![paperview.png](/paper.png)
+![paper.png](https://img.thus.chat/rest/uX3Ngdk.png)
 
 
 ## 快速使用
@@ -17,7 +17,7 @@
 3. 下载 `html` 单文件部署到自己的服务器使用
 4. 下载 `html` 单文件用 `AI` 修改成自己喜欢的样式后食用 
 5. 免费部署到自己的 cloudflare pages，通过自己的域名访问。
-    ![cf.png](/cf.png)
+    ![cf.png](https://img.thus.chat/rest/wipTgdk.png)
 
 
 ## 编辑器简介
